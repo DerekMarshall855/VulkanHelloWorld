@@ -1,7 +1,9 @@
 #pragma once
 
 #include <vector>
+#include <optional>
 
+#define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.hpp>
 
@@ -18,6 +20,17 @@ const std::vector<const char*> validationLayers = {
 	const bool enableValidationLayers = true;
 #endif
 
+struct QueueFamilyIndices
+{
+	std::optional<uint32_t> graphicsFamily;
+	std::optional<uint32_t> presentFamily;
+
+	bool isComplete()
+	{
+		return graphicsFamily.has_value() && presentFamily.has_value();
+	}
+};
+
 class HelloTriangle
 {
 public:
@@ -32,7 +45,11 @@ private:
 	GLFWwindow* m_Window;
 	VkInstance m_Instance;
 	VkDebugUtilsMessengerEXT m_DebugMessenger;
-	VkPhysicalDevice m_PhysicalDevice;
+	VkPhysicalDevice m_PhysicalDevice{ VK_NULL_HANDLE };
+	VkDevice m_LogicalDevice;
+	VkQueue m_GraphicsQueue;
+	VkQueue m_PresentQueue;
+	VkSurfaceKHR m_Surface;
 
 	void initWindow();
 	void initVulkan();
@@ -55,5 +72,11 @@ private:
 	void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 
 	void pickPhysicalDevice();
-	bool isDeviceSuitable(VkPhysicalDevice device);
+	int rateDeviceSuitability(VkPhysicalDevice device);
+
+	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+
+	void createLogicalDevice();
+
+	void createSurface();
 };
