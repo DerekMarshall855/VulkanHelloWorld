@@ -31,6 +31,13 @@ struct QueueFamilyIndices
 	}
 };
 
+struct SwapChainSupportDetails
+{
+	VkSurfaceCapabilitiesKHR capabilities;
+	std::vector<VkSurfaceFormatKHR> formats;
+	std::vector<VkPresentModeKHR> presentModes;
+};
+
 class HelloTriangle
 {
 public:
@@ -50,6 +57,9 @@ private:
 	VkQueue m_GraphicsQueue;
 	VkQueue m_PresentQueue;
 	VkSurfaceKHR m_Surface;
+	const std::vector<const char*> m_DeviceExtensions{
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME
+	};
 
 	void initWindow();
 	void initVulkan();
@@ -79,4 +89,8 @@ private:
 	void createLogicalDevice();
 
 	void createSurface();
+
+	bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+
+	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 };
