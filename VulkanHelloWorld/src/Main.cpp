@@ -12,6 +12,8 @@
 
 #include "HelloTriangle.h"
 
+// Note: Look into lib ShaderC to compile shaders directly in code
+
 int main() {
 	HelloTriangle app;
 

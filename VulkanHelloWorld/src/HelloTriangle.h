@@ -66,6 +66,8 @@ private:
 	VkExtent2D m_SwapChainExtent;
 	std::vector<VkImageView> m_SwapChainImageViews;
 
+	static std::vector<char> readFile(const std::string& filename);
+
 	void initWindow();
 	void initVulkan();
 
@@ -105,4 +107,5 @@ private:
 	void createImageViews();
 
 	void createGraphicsPipeline();
+	VkShaderModule createShaderModule(const std::vector<char>& code);
 };
