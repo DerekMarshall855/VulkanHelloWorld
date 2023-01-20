@@ -23,6 +23,7 @@ void HelloTriangle::initVulkan()
 	createLogicalDevice();
 	createSwapChain();
 	createImageViews();
+	createGraphicsPipeline();
 }
 
 void HelloTriangle::setupDebugMessenger()
@@ -58,6 +59,11 @@ void HelloTriangle::cleanUp()
 	vkDestroyInstance(m_Instance, nullptr);
 	glfwDestroyWindow(m_Window);
 	glfwTerminate();
+}
+
+void HelloTriangle::createGraphicsPipeline()
+{
+
 }
 
 void HelloTriangle::createInstance()
