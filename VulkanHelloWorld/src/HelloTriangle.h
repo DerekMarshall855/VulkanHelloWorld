@@ -68,6 +68,9 @@ private:
 	VkRenderPass m_RenderPass;
 	VkPipelineLayout m_PipelineLayout;
 	VkPipeline m_GraphicsPipeline;
+	std::vector<VkFramebuffer> m_SwapChainFramebuffers;
+	VkCommandPool m_CommandPool;
+	VkCommandBuffer m_CommandBuffer;
 
 	static std::vector<char> readFile(const std::string& filename);
 
@@ -79,6 +82,13 @@ private:
 	void mainLoop();
 	void cleanUp();
 	void createInstance();
+
+	void createFramebuffers();
+	void createCommandPool();
+	void createCommandBuffer();
+	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+
+	void drawFrame();
 
 	bool checkValidationLayerSupport();
 	std::vector<const char*> getRequiredExtensions();
