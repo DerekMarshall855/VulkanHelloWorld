@@ -44,6 +44,9 @@ void HelloTriangle::initVulkan()
 	createImageViews();
 	createRenderPass();
 	createGraphicsPipeline();
+	createFramebuffers();
+	createCommandPool();
+	createCommandBuffer();
 }
 
 void HelloTriangle::createFramebuffers()
