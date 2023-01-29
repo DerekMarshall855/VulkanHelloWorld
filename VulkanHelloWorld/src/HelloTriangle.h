@@ -62,6 +62,7 @@ private:
 	VkQueue m_PresentQueue;
 	VkSurfaceKHR m_Surface;
 	VkSwapchainKHR m_SwapChain;
+	VkSwapchainKHR m_OldSwapChain;
 	std::vector<VkImage> m_SwapChainImages;
 	VkFormat m_SwapChainImageFormat;
 	VkExtent2D m_SwapChainExtent;
@@ -76,8 +77,10 @@ private:
 	std::vector<VkSemaphore> m_RenderFinishedSemaphores;
 	std::vector<VkFence> m_InFlightFences;
 	uint32_t m_CurrentFrame = 0;
+	bool m_FrameBufferResized = false;
 
 	static std::vector<char> readFile(const std::string& filename);
+	static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 
 	void initWindow();
 	void initVulkan();
@@ -123,6 +126,8 @@ private:
 	VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
 	VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 	void createSwapChain();
+	void recreateSwapChain();
+	void cleanupSwapChain();
 	void createImageViews();
 
 	void createRenderPass();

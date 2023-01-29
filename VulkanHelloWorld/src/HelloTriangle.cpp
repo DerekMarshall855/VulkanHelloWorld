@@ -23,14 +23,21 @@ std::vector<char> HelloTriangle::readFile(const std::string& filename)
 	return buffer;
 }
 
+void HelloTriangle::framebufferResizeCallback(GLFWwindow* window, int width, int height)
+{
+	auto app = reinterpret_cast<HelloTriangle*>(glfwGetWindowUserPointer(window));
+	app->m_FrameBufferResized = true;
+}
+
 void HelloTriangle::initWindow()
 {
 	glfwInit();
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
 	m_Window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+	glfwSetWindowUserPointer(m_Window, this);
+	glfwSetFramebufferSizeCallback(m_Window, framebufferResizeCallback);
 }
 
 void HelloTriangle::initVulkan()
@@ -192,11 +199,22 @@ void HelloTriangle::mainLoop()
 void HelloTriangle::drawFrame()
 {
 	vkWaitForFences(m_LogicalDevice, 1, &m_InFlightFences[m_CurrentFrame], VK_TRUE, UINT64_MAX);
-	vkResetFences(m_LogicalDevice, 1, &m_InFlightFences[m_CurrentFrame]);
 
 	uint32_t imageIndex;
-	vkAcquireNextImageKHR(m_LogicalDevice, m_SwapChain, UINT64_MAX, m_ImageAvailableSemaphores[m_CurrentFrame], VK_NULL_HANDLE, &imageIndex);
+	VkResult result = vkAcquireNextImageKHR(m_LogicalDevice, m_SwapChain, UINT64_MAX, m_ImageAvailableSemaphores[m_CurrentFrame], VK_NULL_HANDLE, &imageIndex);
 
+	if (result == VK_ERROR_OUT_OF_DATE_KHR)
+	{
+		recreateSwapChain();
+		return;
+	}
+	else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+	{
+		throw std::runtime_error("Failed to acquire swap chain image!");
+	}
+
+	// Only reset if work is submitted
+	vkResetFences(m_LogicalDevice, 1, &m_InFlightFences[m_CurrentFrame]);
 	vkResetCommandBuffer(m_CommandBuffers[m_CurrentFrame], 0);
 	recordCommandBuffer(m_CommandBuffers[m_CurrentFrame], imageIndex);
 
@@ -228,38 +246,49 @@ void HelloTriangle::drawFrame()
 	presentInfo.pSwapchains = swapChains;
 	presentInfo.pImageIndices = &imageIndex;
 	presentInfo.pResults = nullptr;
-	vkQueuePresentKHR(m_PresentQueue, &presentInfo);
+	result = vkQueuePresentKHR(m_PresentQueue, &presentInfo);
+
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_FrameBufferResized)
+	{
+		m_FrameBufferResized = false;
+		recreateSwapChain();
+	}
+	else if (result != VK_SUCCESS)
+	{
+		throw std::runtime_error("Failed to acquire swap chain image!");
+	}
 
 	m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
 void HelloTriangle::cleanUp()
 {
+	cleanupSwapChain();
+
+	vkDestroyPipeline(m_LogicalDevice, m_GraphicsPipeline, nullptr);
+	vkDestroyPipelineLayout(m_LogicalDevice, m_PipelineLayout, nullptr);
+
+	vkDestroyRenderPass(m_LogicalDevice, m_RenderPass, nullptr);
+
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		vkDestroySemaphore(m_LogicalDevice, m_ImageAvailableSemaphores[i], nullptr);
 		vkDestroySemaphore(m_LogicalDevice, m_RenderFinishedSemaphores[i], nullptr);
 		vkDestroyFence(m_LogicalDevice, m_InFlightFences[i], nullptr);
 	}
+
 	vkDestroyCommandPool(m_LogicalDevice, m_CommandPool, nullptr);
-	for (auto framebuffer : m_SwapChainFramebuffers)
-	{
-		vkDestroyFramebuffer(m_LogicalDevice, framebuffer, nullptr);
-	}
-	vkDestroyPipeline(m_LogicalDevice, m_GraphicsPipeline, nullptr);
-	vkDestroyPipelineLayout(m_LogicalDevice, m_PipelineLayout, nullptr);
-	vkDestroyRenderPass(m_LogicalDevice, m_RenderPass, nullptr);
-	for (auto imageView : m_SwapChainImageViews)
-	{
-		vkDestroyImageView(m_LogicalDevice, imageView, nullptr);
-	}
-	vkDestroySwapchainKHR(m_LogicalDevice, m_SwapChain, nullptr);
+
 	vkDestroyDevice(m_LogicalDevice, nullptr);
+
 	if (enableValidationLayers)
 		DestoryDebugUtilsMessengerEXT(nullptr);
+
 	vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
 	vkDestroyInstance(m_Instance, nullptr);
+
 	glfwDestroyWindow(m_Window);
+
 	glfwTerminate();
 }
 
@@ -781,7 +810,16 @@ void HelloTriangle::createSwapChain()
 	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	createInfo.presentMode = presentMode;
 	createInfo.clipped = VK_TRUE;
-	createInfo.oldSwapchain = VK_NULL_HANDLE;
+
+	if (m_SwapChain != NULL)
+	{
+		m_OldSwapChain = m_SwapChain;
+		createInfo.oldSwapchain = m_OldSwapChain;
+	}
+	else
+	{
+		createInfo.oldSwapchain = VK_NULL_HANDLE;
+	}
 
 	if (vkCreateSwapchainKHR(m_LogicalDevice, &createInfo, nullptr, &m_SwapChain) != VK_SUCCESS)
 		throw std::runtime_error("Failed to create swap chain!");
@@ -791,6 +829,40 @@ void HelloTriangle::createSwapChain()
 	vkGetSwapchainImagesKHR(m_LogicalDevice, m_SwapChain, &imageCount, m_SwapChainImages.data());
 	m_SwapChainImageFormat = surfaceFormat.format;
 	m_SwapChainExtent = extent;
+}
+
+void HelloTriangle::recreateSwapChain()
+{
+	int width = 0, height = 0;
+	glfwGetFramebufferSize(m_Window, &width, &height);
+	while (width == 0 || height == 0)
+	{
+		glfwGetFramebufferSize(m_Window, &width, &height);
+		glfwWaitEvents();
+	}
+
+	vkDeviceWaitIdle(m_LogicalDevice);
+
+	createSwapChain();
+	createImageViews();
+	createFramebuffers();
+	// Note: If app can be moved from two types of monitors we may need to recreate the renderpass here as well
+}
+
+void HelloTriangle::cleanupSwapChain()
+{
+	for (size_t i = 0; i < m_SwapChainFramebuffers.size(); i++)
+	{
+		vkDestroyFramebuffer(m_LogicalDevice, m_SwapChainFramebuffers[i], nullptr);
+	}
+
+	for (size_t i = 0; i < m_SwapChainFramebuffers.size(); i++)
+	{
+		vkDestroyImageView(m_LogicalDevice, m_SwapChainImageViews[i], nullptr);
+	}
+
+	vkDestroySwapchainKHR(m_LogicalDevice, m_SwapChain, nullptr);
+	
 }
 
 void HelloTriangle::createImageViews()
