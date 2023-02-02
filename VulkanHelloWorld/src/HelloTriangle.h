@@ -121,7 +121,9 @@ private:
 	const std::vector<uint16_t> m_Indices{
 		0, 1, 2, 2, 3, 0
 	};
+	// Can later store all buffers in same VkBuffer and use offsets to manage
 	VkBuffer m_VertexBuffer;
+	// Can use same memory chunks for multiple resources IF they arent used in the same render operations and we refresh the data (known as aliasing)
 	VkDeviceMemory m_VertexBufferMemory;
 	VkBuffer m_IndexBuffer;
 	VkDeviceMemory m_IndexBufferMemory;
