@@ -54,6 +54,7 @@ void HelloTriangle::initVulkan()
 	createFramebuffers();
 	createCommandPool();
 	createVertexBuffer();
+	createIndexBuffer();
 	createCommandBuffers();
 	createSyncObjects();
 }
@@ -83,6 +84,27 @@ void HelloTriangle::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, Vk
 		throw std::runtime_error("Failed to allocate vertex buffer memory!");
 
 	vkBindBufferMemory(m_LogicalDevice, buffer, bufferMemory, 0);
+}
+
+void HelloTriangle::createIndexBuffer()
+{
+	VkDeviceSize bufferSize = sizeof(m_Indices[0]) * m_Indices.size();
+
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingBufferMemory;
+	createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+	void* data;
+	vkMapMemory(m_LogicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
+	memcpy(data, m_Indices.data(), (size_t) bufferSize);
+	vkUnmapMemory(m_LogicalDevice, stagingBufferMemory);
+
+	createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_IndexBuffer, m_IndexBufferMemory);
+
+	copyBuffer(stagingBuffer, m_IndexBuffer, bufferSize);
+
+	vkDestroyBuffer(m_LogicalDevice, stagingBuffer, nullptr);
+	vkFreeMemory(m_LogicalDevice, stagingBufferMemory, nullptr);
 }
 
 void HelloTriangle::createVertexBuffer()
@@ -232,6 +254,7 @@ void HelloTriangle::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
 	VkBuffer vertexBuffers[]{ m_VertexBuffer };
 	VkDeviceSize offsets[]{ 0 };
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+	vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
 	VkViewport viewport{};
 	viewport.x = 0.0f;
@@ -247,7 +270,7 @@ void HelloTriangle::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
 	scissor.extent = m_SwapChainExtent;
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-	vkCmdDraw(commandBuffer, static_cast<uint32_t>(m_Vertices.size()), 1, 0, 0);
+	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_Indices.size()), 1, 0, 0, 0);
 
 	vkCmdEndRenderPass(commandBuffer);
 
@@ -367,6 +390,9 @@ void HelloTriangle::drawFrame()
 void HelloTriangle::cleanUp()
 {
 	cleanupSwapChain();
+
+	vkDestroyBuffer(m_LogicalDevice, m_IndexBuffer, nullptr);
+	vkFreeMemory(m_LogicalDevice, m_IndexBufferMemory, nullptr);
 	vkDestroyBuffer(m_LogicalDevice, m_VertexBuffer, nullptr);
 	vkFreeMemory(m_LogicalDevice, m_VertexBufferMemory, nullptr);
 

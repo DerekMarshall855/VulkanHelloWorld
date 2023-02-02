@@ -113,12 +113,18 @@ private:
 	uint32_t m_CurrentFrame{ 0 };
 	bool m_FrameBufferResized{ false };
 	const std::vector<Vertex> m_Vertices{
-		{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-		{{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f} },
-		{{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f} }
+		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+		{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f} },
+		{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f} },
+		{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+	};
+	const std::vector<uint16_t> m_Indices{
+		0, 1, 2, 2, 3, 0
 	};
 	VkBuffer m_VertexBuffer;
 	VkDeviceMemory m_VertexBufferMemory;
+	VkBuffer m_IndexBuffer;
+	VkDeviceMemory m_IndexBufferMemory;
 		
 	static std::vector<char> readFile(const std::string& filename);
 	static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
@@ -132,6 +138,7 @@ private:
 	void cleanUp();
 	void createInstance();
 
+	void createIndexBuffer();
 	void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
 	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
