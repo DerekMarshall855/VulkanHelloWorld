@@ -2,12 +2,15 @@
 
 #include <vector>
 #include <optional>
+#include <array>
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.hpp>
+
+#define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
-#include <array>
+#include <glm/gtc/matrix_transform.hpp>
 
 const uint32_t WIDTH{ 800 };
 const uint32_t HEIGHT{ 600 };
@@ -76,6 +79,13 @@ struct SwapChainSupportDetails
 	std::vector<VkPresentModeKHR> presentModes{};
 };
 
+struct UniformBufferObject
+{
+	glm::mat4 model;
+	glm::mat4 view;
+	glm::mat4 proj;
+};
+
 class HelloTriangle
 {
 public:
@@ -102,6 +112,7 @@ private:
 	VkExtent2D m_SwapChainExtent;
 	std::vector<VkImageView> m_SwapChainImageViews;
 	VkRenderPass m_RenderPass;
+	VkDescriptorSetLayout m_DescriptorSetLayout;
 	VkPipelineLayout m_PipelineLayout;
 	VkPipeline m_GraphicsPipeline;
 	std::vector<VkFramebuffer> m_SwapChainFramebuffers;
@@ -127,6 +138,11 @@ private:
 	VkDeviceMemory m_VertexBufferMemory;
 	VkBuffer m_IndexBuffer;
 	VkDeviceMemory m_IndexBufferMemory;
+	std::vector<VkBuffer> m_UniformBuffers;
+	std::vector<VkDeviceMemory> m_UniformBuffersMemory;
+	std::vector<void*> m_UniformBuffersMapped;
+	VkDescriptorPool m_DescriptorPool;
+	std::vector<VkDescriptorSet> m_DescriptorSets;
 		
 	static std::vector<char> readFile(const std::string& filename);
 	static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
@@ -140,6 +156,11 @@ private:
 	void cleanUp();
 	void createInstance();
 
+	void createDescriptorSets();
+	void createDescriptorPool();
+	void updateUniformBuffer(uint32_t currentImage);
+	void createUniformBuffers();
+	void createDescriptorSetLayout();
 	void createIndexBuffer();
 	void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
