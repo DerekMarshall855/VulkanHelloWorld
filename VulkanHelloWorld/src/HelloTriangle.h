@@ -143,6 +143,8 @@ private:
 	std::vector<void*> m_UniformBuffersMapped;
 	VkDescriptorPool m_DescriptorPool;
 	std::vector<VkDescriptorSet> m_DescriptorSets;
+	VkImage m_TextureImage;
+	VkDeviceMemory m_TextureImageMemory;
 		
 	static std::vector<char> readFile(const std::string& filename);
 	static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
@@ -156,7 +158,13 @@ private:
 	void cleanUp();
 	void createInstance();
 
+	void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+	VkCommandBuffer beginSingleTimeCommands();
+	void endSingleTimeCommands(VkCommandBuffer commandBuffer);
 	void createDescriptorSets();
+	void createTextureImage();
+	void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 	void createDescriptorPool();
 	void updateUniformBuffer(uint32_t currentImage);
 	void createUniformBuffers();
