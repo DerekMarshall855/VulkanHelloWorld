@@ -128,23 +128,24 @@ private:
 	GLFWwindow* m_Window;
 	VkInstance m_Instance;
 	VkDebugUtilsMessengerEXT m_DebugMessenger;
+	VkSampleCountFlagBits m_MsaaSamples = VK_SAMPLE_COUNT_1_BIT;
 	VkPhysicalDevice m_PhysicalDevice = { VK_NULL_HANDLE };
-	VkDevice m_LogicalDevice = { VK_NULL_HANDLE };
-	VkQueue m_GraphicsQueue = { VK_NULL_HANDLE };
-	VkQueue m_PresentQueue = { VK_NULL_HANDLE };
-	VkSurfaceKHR m_Surface = { VK_NULL_HANDLE };
-	VkSwapchainKHR m_SwapChain = { VK_NULL_HANDLE };
-	VkSwapchainKHR m_OldSwapChain = { VK_NULL_HANDLE };
+	VkDevice m_LogicalDevice;
+	VkQueue m_GraphicsQueue;
+	VkQueue m_PresentQueue;
+	VkSurfaceKHR m_Surface;
+	VkSwapchainKHR m_SwapChain;
+	VkSwapchainKHR m_OldSwapChain;
 	std::vector<VkImage> m_SwapChainImages;
 	VkFormat m_SwapChainImageFormat;
 	VkExtent2D m_SwapChainExtent;
 	std::vector<VkImageView> m_SwapChainImageViews;
-	VkRenderPass m_RenderPass = { VK_NULL_HANDLE };
-	VkDescriptorSetLayout m_DescriptorSetLayout = { VK_NULL_HANDLE };
-	VkPipelineLayout m_PipelineLayout = { VK_NULL_HANDLE };
-	VkPipeline m_GraphicsPipeline = { VK_NULL_HANDLE };
+	VkRenderPass m_RenderPass;
+	VkDescriptorSetLayout m_DescriptorSetLayout;
+	VkPipelineLayout m_PipelineLayout;
+	VkPipeline m_GraphicsPipeline;
 	std::vector<VkFramebuffer> m_SwapChainFramebuffers;
-	VkCommandPool m_CommandPool = { VK_NULL_HANDLE };
+	VkCommandPool m_CommandPool;
 	std::vector<VkCommandBuffer> m_CommandBuffers;
 	std::vector<VkSemaphore> m_ImageAvailableSemaphores;
 	std::vector<VkSemaphore> m_RenderFinishedSemaphores;
@@ -164,6 +165,7 @@ private:
 	std::vector<void*> m_UniformBuffersMapped;
 	VkDescriptorPool m_DescriptorPool;
 	std::vector<VkDescriptorSet> m_DescriptorSets;
+	uint32_t m_MipLevels;
 	VkImage m_TextureImage;
 	VkImageView m_TextureImageView;
 	VkSampler m_TextureSampler;
@@ -171,6 +173,9 @@ private:
 	VkImage m_DepthImage;
 	VkDeviceMemory m_DepthImageMemory;
 	VkImageView m_DepthImageView;
+	VkImage m_ColorImage;
+	VkDeviceMemory m_ColorImageMemory;
+	VkImageView m_ColorImageView;
 		
 	static std::vector<char> readFile(const std::string& filename);
 	static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
@@ -184,21 +189,23 @@ private:
 	void cleanUp();
 	void createInstance();
 	void loadModel();
+	VkSampleCountFlagBits getMaxUsableSampleCount();
 
+	void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
 	void createDepthResources();
 	VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 	VkFormat findDepthFormat();
 	bool hasStencilComponent(VkFormat format);
 	void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
-	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels);
 	VkCommandBuffer beginSingleTimeCommands();
 	void endSingleTimeCommands(VkCommandBuffer commandBuffer);
 	void createDescriptorSets();
 	void createTextureImage();
 	void createTextureImageView();
 	void createTextureSampler();
-	VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
-	void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+	VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels);
+	void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 	void createDescriptorPool();
 	void updateUniformBuffer(uint32_t currentImage);
 	void createUniformBuffers();
@@ -213,6 +220,7 @@ private:
 	void createCommandBuffers();
 	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 	void createSyncObjects();
+	void createColorResources();
 
 	void drawFrame();
 
